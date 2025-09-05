@@ -1,6 +1,6 @@
 # SaferMommy - Recipe Management App
 
-A modern, AI-powered recipe management application built with React Native and Expo, featuring intelligent recipe scanning, shopping list generation, and video creation capabilities.
+SaferMommy helps expecting and new parents instantly check food and household products for pregnancy safety — scan, search, and shop with confidence.
 
 ## 🌟 Features
 
