@@ -17,10 +17,14 @@ export function consolidateShoppingList(ingredients: Ingredient[], recipes: { id
   const itemMap = new Map<string, ConsolidatedItem>();
 
   ingredients.forEach(ingredient => {
+    if (!ingredient.name || !ingredient.unit) {
+      return;
+    }
+
     const recipe = recipes.find(r => r.id === ingredient.recipeId);
     if (!recipe) return;
 
-    const key = `${ingredient.name.toLowerCase()}-${ingredient.unit}`;
+    const key = `${ingredient.name.toLowerCase()}-${ingredient.unit.toLowerCase()}`;
     if (!itemMap.has(key)) {
       itemMap.set(key, {
         name: ingredient.name,

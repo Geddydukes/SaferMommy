@@ -6,9 +6,7 @@ import { ShoppingItem } from '../../../types/recipe';
 import { formatAmount } from '../../../utils/shopping';
 
 export default function CartScreen() {
-  const [items, setItems] = useState<ShoppingItem[]>([
-    // Sample data - replace with actual cart items
-  ]);
+  const [items, setItems] = useState<ShoppingItem[]>([]);
 
   const removeFromCart = (id: string) => {
     setItems(items.filter(item => item.id !== id));
@@ -27,9 +25,9 @@ export default function CartScreen() {
         {items.map((item) => (
           <View key={item.id} style={styles.item}>
             <View style={styles.itemContent}>
-              <Text style={styles.itemName}>{item.name}</Text>
+              <Text style={styles.itemName}>{item.name ?? 'Unnamed item'}</Text>
               <Text style={styles.itemAmount}>{formatAmount([{ amount: item.amount, unit: item.unit }])}</Text>
-              {item.recipes.length > 0 && (
+              {item.recipes && item.recipes.length > 0 && (
                 <Text style={styles.recipeText}>
                   From: {item.recipes.map(r => r.title).join(', ')}
                 </Text>
