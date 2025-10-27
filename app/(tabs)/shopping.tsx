@@ -1,71 +1,98 @@
+import { useMemo, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, TextInput } from 'react-native';
 import { Plus, Check, Trash2, Filter } from 'lucide-react-native';
-import { useState } from 'react';
-import { GroceryCategory } from '../../types/recipe';
+import { GROCERY_CATEGORY_VALUES, GroceryCategory, ShoppingItem } from '../../types/recipe';
 
-interface ShoppingItem {
-  id: string;
-  name: string;
-  category: GroceryCategory;
-  checked: boolean;
-  recipeId?: string;
-  recipeName?: string;
+function createLocalItem(partial: Partial<ShoppingItem> & { name: string }): ShoppingItem {
+  const timestamp = new Date().toISOString();
+  return {
+    id: partial.id ?? Math.random().toString(36).slice(2),
+    listId: partial.listId ?? 'local-demo',
+    ingredientId: partial.ingredientId ?? null,
+    name: partial.name,
+    amount: partial.amount ?? 1,
+    unit: partial.unit ?? 'item',
+    category: (partial.category ?? 'Other') as GroceryCategory,
+    checked: partial.checked ?? false,
+    createdAt: partial.createdAt ?? timestamp,
+    updatedAt: partial.updatedAt ?? timestamp,
+    recipes: partial.recipes ?? [],
+  };
 }
+
+const initialItems: ShoppingItem[] = [
+  createLocalItem({
+    id: '1',
+    name: 'Fresh Basil',
+    amount: 1,
+    unit: 'bunch',
+    category: 'Produce' as GroceryCategory,
+    recipes: [{ id: 'recipe-1', title: 'Classic Margherita Pizza' }],
+  }),
+  createLocalItem({
+    id: '2',
+    name: 'Mozzarella',
+    amount: 8,
+    unit: 'oz',
+    category: 'Dairy & Eggs' as GroceryCategory,
+    recipes: [{ id: 'recipe-1', title: 'Classic Margherita Pizza' }],
+  }),
+  createLocalItem({
+    id: '3',
+    name: 'Olive Oil',
+    amount: 1,
+    unit: 'bottle',
+    category: 'Pantry' as GroceryCategory,
+  }),
+];
 
 export default function ShoppingScreen() {
   const [newItem, setNewItem] = useState('');
-  const [items, setItems] = useState<ShoppingItem[]>([
-    {
-      id: '1',
-      name: 'Fresh Basil',
-      category: GroceryCategory.PRODUCE,
-      checked: false,
-      recipeId: '1',
-      recipeName: 'Classic Margherita Pizza'
-    },
-    {
-      id: '2',
-      name: 'Mozzarella',
-      category: GroceryCategory.DAIRY,
-      checked: false,
-      recipeId: '1',
-      recipeName: 'Classic Margherita Pizza'
-    },
-    {
-      id: '3',
-      name: 'Olive Oil',
-      category: GroceryCategory.PANTRY,
-      checked: false
-    }
-  ]);
+  const [items, setItems] = useState<ShoppingItem[]>(initialItems);
 
-  const groupedItems = items.reduce((acc, item) => {
-    if (!acc[item.category]) {
-      acc[item.category] = [];
-    }
-    acc[item.category].push(item);
-    return acc;
-  }, {} as Record<GroceryCategory, ShoppingItem[]>);
+  const groupedItems = useMemo(() => {
+    const base = GROCERY_CATEGORY_VALUES.reduce<Record<GroceryCategory, ShoppingItem[]>>((acc, category) => {
+      acc[category] = [];
+      return acc;
+    }, {} as Record<GroceryCategory, ShoppingItem[]>);
+
+    return items.reduce<Record<GroceryCategory, ShoppingItem[]>>((acc, item) => {
+      if (!acc[item.category]) {
+        acc[item.category] = [];
+      }
+      acc[item.category].push(item);
+      return acc;
+    }, { ...base });
+  }, [items]);
 
   const toggleItem = (id: string) => {
-    setItems(items.map(item => 
-      item.id === id ? { ...item, checked: !item.checked } : item
-    ));
+    setItems((current) =>
+      current.map((item) =>
+        item.id === id
+          ? {
+              ...item,
+              checked: !item.checked,
+              updatedAt: new Date().toISOString(),
+            }
+          : item
+      )
+    );
   };
 
   const deleteItem = (id: string) => {
-    setItems(items.filter(item => item.id !== id));
+    setItems((current) => current.filter((item) => item.id !== id));
   };
 
   const addItem = () => {
     if (!newItem.trim()) return;
-    
-    setItems([...items, {
-      id: Date.now().toString(),
-      name: newItem,
-      category: GroceryCategory.OTHER,
-      checked: false
-    }]);
+
+    setItems((current) => [
+      ...current,
+      createLocalItem({
+        name: newItem.trim(),
+        category: 'Other' as GroceryCategory,
+      }),
+    ]);
     setNewItem('');
   };
 
@@ -82,44 +109,52 @@ export default function ShoppingScreen() {
             onSubmitEditing={addItem}
             placeholderTextColor="#64748B"
           />
-          <Pressable style={styles.filterButton}>
+          <Pressable style={styles.filterButton} accessibilityLabel="Filter shopping list">
             <Filter size={24} color="#1E293B" />
           </Pressable>
-          <Pressable style={styles.addButton} onPress={addItem}>
+          <Pressable style={styles.addButton} onPress={addItem} accessibilityLabel="Add shopping list item">
             <Plus size={24} color="#FFFFFF" />
           </Pressable>
         </View>
       </View>
 
       <ScrollView style={styles.list} showsVerticalScrollIndicator={false}>
-        {Object.entries(groupedItems).map(([category, categoryItems]) => (
-          <View key={category} style={styles.category}>
-            <Text style={styles.categoryTitle}>{category}</Text>
-            {categoryItems.map((item) => (
-              <View key={item.id} style={styles.item}>
-                <Pressable 
-                  style={[styles.checkbox, item.checked && styles.checkboxChecked]}
-                  onPress={() => toggleItem(item.id)}>
-                  {item.checked && <Check size={16} color="#FFFFFF" />}
-                </Pressable>
-                <View style={styles.itemContent}>
-                  <Text style={[
-                    styles.itemText,
-                    item.checked && styles.itemTextChecked
-                  ]}>{item.name}</Text>
-                  {item.recipeName && (
-                    <Text style={styles.recipeText}>From: {item.recipeName}</Text>
-                  )}
+        {(Object.entries(groupedItems) as [GroceryCategory, ShoppingItem[]][])
+          .filter(([, categoryItems]) => categoryItems.length > 0)
+          .map(([category, categoryItems]) => (
+            <View key={category} style={styles.category}>
+              <Text style={styles.categoryTitle}>{category}</Text>
+              {categoryItems.map((item) => (
+                <View key={item.id} style={styles.item}>
+                  <Pressable
+                    style={[styles.checkbox, item.checked && styles.checkboxChecked]}
+                    onPress={() => toggleItem(item.id)}
+                    accessibilityLabel={`Mark ${item.name ?? 'item'} as ${item.checked ? 'incomplete' : 'complete'}`}>
+                    {item.checked && <Check size={16} color="#FFFFFF" />}
+                  </Pressable>
+                  <View style={styles.itemContent}>
+                    <Text style={[styles.itemText, item.checked && styles.itemTextChecked]}>
+                      {item.name ?? 'Unnamed item'}
+                    </Text>
+                    <Text style={styles.amountText}>
+                      {`${item.amount} ${item.unit}${item.amount !== 1 ? 's' : ''}`}
+                    </Text>
+                    {item.recipes && item.recipes.length > 0 && (
+                      <Text style={styles.recipeText}>
+                        From: {item.recipes.map((recipe: { id: string; title: string }) => recipe.title).join(', ')}
+                      </Text>
+                    )}
+                  </View>
+                  <Pressable
+                    style={styles.deleteButton}
+                    onPress={() => deleteItem(item.id)}
+                    accessibilityLabel={`Remove ${item.name ?? 'item'} from shopping list`}>
+                    <Trash2 size={16} color="#94A3B8" />
+                  </Pressable>
                 </View>
-                <Pressable 
-                  style={styles.deleteButton}
-                  onPress={() => deleteItem(item.id)}>
-                  <Trash2 size={16} color="#94A3B8" />
-                </Pressable>
-              </View>
-            ))}
-          </View>
-        ))}
+              ))}
+            </View>
+          ))}
       </ScrollView>
 
       <View style={styles.summary}>
@@ -129,9 +164,7 @@ export default function ShoppingScreen() {
         </View>
         <View style={styles.summaryItem}>
           <Text style={styles.summaryLabel}>Completed</Text>
-          <Text style={styles.summaryValue}>
-            {items.filter(item => item.checked).length}
-          </Text>
+          <Text style={styles.summaryValue}>{items.filter((item) => item.checked).length}</Text>
         </View>
       </View>
     </View>
@@ -231,6 +264,12 @@ const styles = StyleSheet.create({
   itemTextChecked: {
     textDecorationLine: 'line-through',
     color: '#94A3B8',
+  },
+  amountText: {
+    fontFamily: 'Inter',
+    fontSize: 14,
+    color: '#64748B',
+    marginTop: 4,
   },
   recipeText: {
     fontFamily: 'Inter',

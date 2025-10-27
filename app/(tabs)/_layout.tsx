@@ -20,28 +20,28 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="RecipeScreen"
+        name="recipes"
         options={{
           title: 'Recipes',
           tabBarIcon: ({ color, size }) => <Book size={size} color={color} />,
         }}
       />
       <Tabs.Screen
-        name="ScanScreen"
+        name="scan"
         options={{
           title: 'Scan',
           tabBarIcon: ({ color, size }) => <Camera size={size} color={color} />,
         }}
       />
       <Tabs.Screen
-        name="ShoppingScreen"
+        name="shopping"
         options={{
           title: 'Shopping',
           tabBarIcon: ({ color, size }) => <ShoppingBag size={size} color={color} />,
         }}
       />
       <Tabs.Screen
-        name="SettingsScreen"
+        name="settings"
         options={{
           title: 'Settings',
           tabBarIcon: ({ color, size }) => <Settings size={size} color={color} />,
